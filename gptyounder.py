@@ -10,6 +10,7 @@ openai.api_key = OPENAI_API_KEY
 
 # Inicializa as variáveis de estado
 st.session_state.setdefault('messages', [])
+st.session_state.setdefault('user_input', '')
 
 def process_file(uploaded_file, file_type):
     """Processa o arquivo carregado e retorna seu texto."""
@@ -50,7 +51,7 @@ if file_type != "Nenhum":
         st.sidebar.text_area("Prévia do documento", value=document_content[:500] + "...", height=150)
 
 st.title("Chat com ChatGPT")
-user_input = st.text_input("Digite sua pergunta relacionada ao documento:", key="input")
+user_input = st.text_input("Digite sua pergunta relacionada ao documento:", key="input", value=st.session_state['user_input'])
 
 # Botão de envio
 if st.button("Enviar"):
@@ -59,8 +60,4 @@ if st.button("Enviar"):
         st.session_state['messages'].append(f"Você: {user_input}")
         st.session_state['messages'].append(f"Assistente: {response}")
         # Limpa o campo de entrada
-        user_input = ""
-
-# Exibindo mensagens
-for message in st.session_state['messages']:
-    st.text(message)
+        st.session_state['user_input'] = ""
