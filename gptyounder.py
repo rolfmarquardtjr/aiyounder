@@ -2,7 +2,7 @@ import streamlit as st
 import openai
 import pandas as pd
 import docx
-import fitz  # Importação ajustada para PyMuPDF
+import fitz  # PyMuPDF
 import os
 
 # Acessar a chave da API da OpenAI de Secrets no Streamlit Cloud
@@ -26,12 +26,12 @@ def process_file(uploaded_file, file_type):
 def send_message(user_input, document_content):
     """Envia a mensagem do usuário e o conteúdo do documento para a OpenAI e retorna a resposta."""
     try:
+        messages = [{"role": "user", "content": user_input}]
+        if document_content:  # Se houver conteúdo de documento, inclua como contexto
+            messages.insert(0, {"role": "system", "content": document_content})
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": document_content},
-                {"role": "user", "content": user_input}
-            ]
+            messages=messages
         )
         return response.choices[0].message['content']
     except Exception as e:
@@ -41,6 +41,8 @@ if 'messages' not in st.session_state:
     st.session_state['messages'] = []
 if 'document_content' not in st.session_state:
     st.session_state['document_content'] = ""
+if 'user_input' not in st.session_state:
+    st.session_state['user_input'] = ""
 
 # Adicionando o logo
 st.image("https://younder.com.br/wp-content/uploads/2023/03/Logotipo-Younder-horizontal-principal-1-1024x447.png", width=300)
@@ -59,12 +61,13 @@ with st.sidebar:
 
 st.title("Chat com ChatGPT")
 
-user_input = st.text_input("Digite sua pergunta relacionada ao documento:", "")
+user_input = st.text_input("Digite sua pergunta relacionada ao documento:", value="", key="user_input")
 
 if st.button("Enviar") and user_input:
     assistant_response = send_message(user_input, st.session_state['document_content'])
     st.session_state.messages.append(f"Você: {user_input}")
     st.session_state.messages.append(f"Assistente: {assistant_response}")
+    st.session_state['user_input'] = ""  # Limpar o campo de texto após o envio
 
 for message in st.session_state.messages:
     st.text(message)
