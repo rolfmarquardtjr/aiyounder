@@ -22,12 +22,20 @@ def process_file(uploaded_file, file_type):
         text = '\n'.join(para.text for para in doc.paragraphs)
     return text
 
-def send_message(user_input, document_content):
-    """Envia a mensagem do usuário e o conteúdo do documento para a OpenAI e retorna a resposta."""
+def send_message(user_input, document_content, action="question"):
+    """Envia a mensagem do usuário ou ação e o conteúdo do documento para a OpenAI e retorna a resposta."""
     try:
-        messages = [{"role": "user", "content": user_input}]
+        messages = []
+        if action == "summarize":
+            # Instrução para resumir o documento
+            messages.append({"role": "system", "content": "Resuma o seguinte documento:"})
+        else:
+            # Pergunta do usuário
+            messages.append({"role": "user", "content": user_input})
+        
         if document_content:  # Se houver conteúdo de documento, inclua como contexto
-            messages.insert(0, {"role": "system", "content": document_content})
+            messages.append({"role": "system", "content": document_content})
+        
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=messages
@@ -42,9 +50,6 @@ if 'messages' not in st.session_state:
 if 'document_content' not in st.session_state:
     st.session_state['document_content'] = ""
 
-# Adicionando o logo
-st.image("https://younder.com.br/wp-content/uploads/2023/03/Logotipo-Younder-horizontal-principal-1-1024x447.png", width=300)
-
 # UI para upload de documentos
 with st.sidebar:
     st.header("Upload de Documentos")
@@ -54,6 +59,9 @@ with st.sidebar:
     if uploaded_file and file_type != "Escolher":
         document_content = process_file(uploaded_file, file_type)
         st.session_state['document_content'] = document_content
+        # Chama a função send_message para resumir o documento automaticamente após o upload
+        summary_response = send_message("", document_content, action="summarize")
+        st.session_state.messages.append(f"Resumo do Documento: {summary_response}")
         st.text_area("Prévia do documento", value=document_content[:500] + "...", height=150, disabled=True)
 
 st.title("Chat com ChatGPT")
@@ -67,7 +75,6 @@ if st.button("Enviar", key="send_button"):
         assistant_response = send_message(user_input, st.session_state['document_content'])
         st.session_state.messages.append(f"Você: {user_input}")
         st.session_state.messages.append(f"Assistente: {assistant_response}")
-        # Limpar o campo de texto manualmente não é necessário aqui devido ao novo key
 
 for message in st.session_state.messages:
     st.text(message)
