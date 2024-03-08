@@ -4,7 +4,7 @@ import pandas as pd
 import docx
 import fitz  # PyMuPDF
 
-# Configura a chave da API usando Secrets
+# Defina sua chave de API da OpenAI
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 openai.api_key = OPENAI_API_KEY
 
