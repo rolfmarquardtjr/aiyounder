@@ -4,6 +4,21 @@ import docx
 import fitz  # PyMuPDF
 from openai import OpenAI
 
+# Defina a função process_file antes de usá-la
+def process_file(uploaded_file, file_type):
+    """Processa o arquivo carregado e retorna seu texto."""
+    text = ""
+    if file_type == "PDF":
+        with fitz.open(stream=uploaded_file.read()) as doc:
+            text = " ".join(page.get_text() for page in doc)
+    elif file_type == "Excel":
+        df = pd.read_excel(uploaded_file)
+        text = df.to_string(index=False)
+    elif file_type == "Word":
+        doc = docx.Document(uploaded_file)
+        text = '\n'.join(para.text for para in doc.paragraphs)
+    return text
+
 # Solicita a chave da API da OpenAI através da interface do Streamlit
 with st.sidebar:
     openai_api_key = st.text_input("Chave da API da OpenAI", key="chatbot_api_key", type="password")
@@ -19,6 +34,8 @@ with st.sidebar:
     if uploaded_file and file_type != "Escolher":
         document_content = process_file(uploaded_file, file_type)
         st.session_state['document_content'] = document_content
+
+st.title("💬 Chatbot")
 
 st.title("💬 Chatbot")
 
