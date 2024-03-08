@@ -19,8 +19,12 @@ with st.sidebar:
     if uploaded_file and file_type != "Escolher":
         document_content = process_file(uploaded_file, file_type)
         st.session_state['document_content'] = document_content
+# Adicionando o logo
+st.image("https://younder.com.br/wp-content/uploads/2023/03/Logotipo-Younder-horizontal-principal-1-1024x447.png", width=300)
 
-st.title("💬 Chatbot")
+# UI para upload de documentos
+
+st.title("💬 Chatbot da Younder")
 
 # Função para processar o arquivo carregado
 def process_file(uploaded_file, file_type):
