@@ -2,8 +2,7 @@ import streamlit as st
 import openai
 import pandas as pd
 import docx
-import fitz  # PyMuPDF, conhecida também como fitz
-import os
+import fitz  # PyMuPDF, também conhecido como fitz
 
 # Acessar a chave da API da OpenAI de Secrets no Streamlit Cloud
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
@@ -68,5 +67,8 @@ with st.sidebar:
         uploaded_file = st.file_uploader("Carregue um arquivo", type=["pdf", "xlsx", "docx"])
         if uploaded_file:
             document_content = process_file(uploaded_file, file_type)
-            st.session_state['document_content'] = document_content
-            st.text_area("Prévia do documento", value=document_content[:500] + "...", height=150, disabled=True)
+            if document_content:
+                st.session_state['document_content'] = document_content
+                st.success("Documento carregado com sucesso!")
+            else:
+                st.error("Erro ao processar o documento. Tente novamente.")
