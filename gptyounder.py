@@ -2,7 +2,7 @@ import streamlit as st
 import openai
 import pandas as pd
 import docx
-import fitz  # Importação ajustada para PyMuPDF
+import fitz  # PyMuPDF, conhecida também como fitz
 import os
 
 # Acessar a chave da API da OpenAI de Secrets no Streamlit Cloud
@@ -37,15 +37,27 @@ def send_message(user_input, document_content):
     except Exception as e:
         return f"Erro ao consultar a OpenAI: {str(e)}"
 
-if 'messages' not in st.session_state:
-    st.session_state['messages'] = []
-if 'document_content' not in st.session_state:
-    st.session_state['document_content'] = ""
-
 # Adicionando o logo
 st.image("https://younder.com.br/wp-content/uploads/2023/03/Logotipo-Younder-horizontal-principal-1-1024x447.png", width=300)
 
-# UI para upload de documentos
+# UI para o chat
+st.title("Chat com a Younder GPT")
+
+# Utilizando st.form para permitir o envio com Enter
+with st.form("chat_form"):
+    user_input = st.text_input("Digite sua pergunta relacionada ao documento:", "")
+    submit_button = st.form_submit_button("Enviar")
+
+if submit_button and user_input:
+    if 'document_content' in st.session_state:
+        assistant_response = send_message(user_input, st.session_state['document_content'])
+        st.session_state['messages'].append(f"Você: {user_input}")
+        st.session_state['messages'].append(f"Assistente: {assistant_response}")
+
+for message in st.session_state.get('messages', []):
+    st.text(message)
+
+# Sidebar para upload de documentos
 with st.sidebar:
     st.header("Upload de Documentos")
     file_types = ["PDF", "Excel", "Word"]
@@ -56,15 +68,3 @@ with st.sidebar:
             document_content = process_file(uploaded_file, file_type)
             st.session_state['document_content'] = document_content
             st.text_area("Prévia do documento", value=document_content[:500] + "...", height=150, disabled=True)
-
-st.title("Chat com ChatGPT")
-
-user_input = st.text_input("Digite sua pergunta relacionada ao documento:", "")
-
-if st.button("Enviar") and user_input:
-    assistant_response = send_message(user_input, st.session_state['document_content'])
-    st.session_state.messages.append(f"Você: {user_input}")
-    st.session_state.messages.append(f"Assistente: {assistant_response}")
-
-for message in st.session_state.messages:
-    st.text(message)
