@@ -23,25 +23,27 @@ def process_file(uploaded_file, file_type):
         text = '\n'.join(para.text for para in doc.paragraphs)
     return text
 
-def send_message(user_input, document_content):
+def send_message(user_input, document_content=""):
     """Envia a mensagem do usuário para a OpenAI e retorna a resposta."""
+    messages = [{"role": "system", "content": "You are a helpful assistant."}]
+    if document_content:  # Inclui o conteúdo do documento como contexto se disponível
+        messages.append({"role": "system", "content": document_content})
+    messages.append({"role": "user", "content": user_input})
+
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": document_content},
-            {"role": "user", "content": user_input}
-        ]
+        messages=messages
     )
     return response.choices[0].message['content']
 
-# Adicionando o logo
+# Interface do Usuário
 st.sidebar.image("https://younder.com.br/wp-content/uploads/2023/03/Logotipo-Younder-horizontal-principal-1-1024x447.png", width=300)
 
-# Upload de documentos
-st.sidebar.header("Upload de Documentos")
-file_type = st.sidebar.selectbox("Tipo de Documento", ["Escolher", "PDF", "Excel", "Word"])
+# Upload de documentos (opcional)
+st.sidebar.header("Upload de Documentos (Opcional)")
+file_type = st.sidebar.selectbox("Tipo de Documento", ["Nenhum", "PDF", "Excel", "Word"])
 document_content = ""
-if file_type != "Escolher":
+if file_type != "Nenhum":
     uploaded_file = st.sidebar.file_uploader("Carregue um arquivo", type=["pdf", "xlsx", "docx"])
     if uploaded_file:
         document_content = process_file(uploaded_file, file_type)
@@ -49,19 +51,16 @@ if file_type != "Escolher":
 
 # Chat com ChatGPT
 st.title("Chat com ChatGPT")
-user_input = st.text_input("Digite sua pergunta relacionada ao documento:", key="user_input")
+user_input = st.text_input("Digite sua pergunta:", key="user_input")
 
 if st.button("Enviar") and user_input:
     if 'messages' not in st.session_state:
         st.session_state['messages'] = []
     assistant_response = send_message(user_input, document_content)
-    st.session_state['messages'].append(f"Você: {user_input}")
-    st.session_state['messages'].append(f"Assistente: {assistant_response}")
-    st.session_state['user_input'] = ''  # Tentativa de resetar o input
+    st.session_state['messages'].append("Você: " + user_input)
+    st.session_state['messages'].append("Assistente: " + assistant_response)
+    st.session_state['user_input'] = ''  # Limpar input
 
+# Exibir mensagens
 for message in st.session_state.get('messages', []):
     st.text(message)
-
-# Limpeza após a renderização
-if 'user_input' in st.session_state:
-    del st.session_state['user_input']  # Limpeza do estado após o uso
