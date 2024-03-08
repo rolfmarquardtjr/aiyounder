@@ -22,33 +22,7 @@ def process_file(uploaded_file, file_type):
         text = '\n'.join(para.text for para in doc.paragraphs)
     return text
 
-def send_message(user_input, document_content, action="question"):
-    """Envia a mensagem do usuário ou ação e o conteúdo do documento para a OpenAI e retorna a resposta."""
-    try:
-        messages = []
-        if action == "summarize":
-            # Instrução para resumir o documento
-            messages.append({"role": "system", "content": "Resuma o seguinte documento:"})
-        else:
-            # Pergunta do usuário
-            messages.append({"role": "user", "content": user_input})
-        
-        if document_content:  # Se houver conteúdo de documento, inclua como contexto
-            messages.append({"role": "system", "content": document_content})
-        
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=messages
-        )
-        return response.choices[0].message['content']
-    except Exception as e:
-        return f"Erro ao consultar a OpenAI: {str(e)}"
-
-# Inicialização do estado da sessão
-if 'messages' not in st.session_state:
-    st.session_state['messages'] = []
-if 'document_content' not in st.session_state:
-    st.session_state['document_content'] = ""
+st.title("💬 Chat com ChatGPT")
 
 # UI para upload de documentos
 with st.sidebar:
@@ -59,22 +33,40 @@ with st.sidebar:
     if uploaded_file and file_type != "Escolher":
         document_content = process_file(uploaded_file, file_type)
         st.session_state['document_content'] = document_content
-        # Chama a função send_message para resumir o documento automaticamente após o upload
-        summary_response = send_message("", document_content, action="summarize")
-        st.session_state.messages.append(f"Resumo do Documento: {summary_response}")
-        st.text_area("Prévia do documento", value=document_content[:500] + "...", height=150, disabled=True)
 
-st.title("Chat com ChatGPT")
+# Inicialização do estado da sessão para mensagens
+if "messages" not in st.session_state:
+    st.session_state["messages"] = [{"role": "system", "content": "Como posso ajudá-lo?"}]
 
-# Ajuste para evitar conflitos de ID de widget
-user_input_key = "user_input_" + str(len(st.session_state['messages']))
-user_input = st.text_input("Digite sua pergunta relacionada ao documento:", key=user_input_key)
+# Exibição das mensagens anteriores
+for msg in st.session_state.messages:
+    if msg["role"] == "user":
+        st.chat_message(msg["content"], is_user=True)
+    else:
+        st.chat_message(msg["content"])
 
-if st.button("Enviar", key="send_button"):
-    if user_input:
-        assistant_response = send_message(user_input, st.session_state['document_content'])
-        st.session_state.messages.append(f"Você: {user_input}")
-        st.session_state.messages.append(f"Assistente: {assistant_response}")
+# Entrada de texto do usuário
+user_input = st.chat_input("Digite sua pergunta ou peça para resumir o documento carregado:")
 
-for message in st.session_state.messages:
-    st.text(message)
+if user_input:
+    # Adiciona a pergunta do usuário ao estado da sessão
+    st.session_state.messages.append({"role": "user", "content": user_input})
+    
+    # Se o usuário pedir para resumir o documento, use o conteúdo do documento como entrada
+    if "resumir" in user_input.lower() and 'document_content' in st.session_state:
+        user_input = st.session_state['document_content']
+    
+    # Prepara as mensagens para a API
+    messages = [{"role": msg["role"], "content": msg["content"]} for msg in st.session_state.messages]
+    
+    # Chama a API da OpenAI para obter a resposta
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=messages
+    )
+    
+    # Obtém a resposta da API
+    assistant_response = response.choices[0].message['content']
+    
+    # Adiciona a resposta do assistente ao estado da sessão
+    st.session_state.messages.append({"role": "assistant", "content": assistant_response})
