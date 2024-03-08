@@ -40,10 +40,7 @@ if "messages" not in st.session_state:
 
 # Exibição das mensagens anteriores
 for msg in st.session_state.messages:
-    if msg["role"] == "user":
-        st.chat_message(msg["content"], is_user=True)
-    else:
-        st.chat_message(msg["content"])
+    st.chat_message(msg["role"]).write(msg["content"])
 
 # Entrada de texto do usuário
 user_input = st.chat_input("Digite sua pergunta ou peça para resumir o documento carregado:")
@@ -70,3 +67,4 @@ if user_input:
     
     # Adiciona a resposta do assistente ao estado da sessão
     st.session_state.messages.append({"role": "assistant", "content": assistant_response})
+    st.chat_message("assistant").write(assistant_response)
