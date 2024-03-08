@@ -36,10 +36,8 @@ def send_message(user_input, document_content=""):
     )
     return response.choices[0].message['content']
 
-# Interface do Usuário
+# Adicionando o logo e configurando a interface do usuário
 st.sidebar.image("https://younder.com.br/wp-content/uploads/2023/03/Logotipo-Younder-horizontal-principal-1-1024x447.png", width=300)
-
-# Upload de documentos (opcional)
 st.sidebar.header("Upload de Documentos (Opcional)")
 file_type = st.sidebar.selectbox("Tipo de Documento", ["Nenhum", "PDF", "Excel", "Word"])
 document_content = ""
@@ -47,20 +45,16 @@ if file_type != "Nenhum":
     uploaded_file = st.sidebar.file_uploader("Carregue um arquivo", type=["pdf", "xlsx", "docx"])
     if uploaded_file:
         document_content = process_file(uploaded_file, file_type)
-        st.sidebar.text_area("Prévia do documento:", value=document_content[:500] + "...", height=150)
+        st.sidebar.text_area("Prévia do documento", value=document_content[:500] + "...", height=150)
 
-# Chat com ChatGPT
 st.title("Chat com ChatGPT")
-user_input = st.text_input("Digite sua pergunta:", key="user_input")
+user_input = st.text_input("Digite sua pergunta relacionada ao documento:", key="input", on_change=send_message, args=(document_content,))
 
-if st.button("Enviar") and user_input:
-    if 'messages' not in st.session_state:
-        st.session_state['messages'] = []
-    assistant_response = send_message(user_input, document_content)
-    st.session_state['messages'].append("Você: " + user_input)
-    st.session_state['messages'].append("Assistente: " + assistant_response)
-    st.session_state['user_input'] = ''  # Limpar input
+# Botão de envio foi removido para simplificar o exemplo e evitar o erro
 
-# Exibir mensagens
-for message in st.session_state.get('messages', []):
+if 'messages' not in st.session_state:
+    st.session_state['messages'] = []
+
+# Exibindo mensagens
+for message in st.session_state['messages']:
     st.text(message)
