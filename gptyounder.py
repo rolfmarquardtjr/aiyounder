@@ -28,6 +28,9 @@ def process_file(uploaded_file, file_type):
 
 def send_message(user_input, document_content=""):
     """Envia a mensagem do usuário para a OpenAI e retorna a resposta."""
+    if not user_input:
+        return ""
+
     messages = [{"role": "system", "content": "You are a helpful assistant."}]
     if document_content:  # Inclui o conteúdo do documento como contexto se disponível
         messages.append({"role": "system", "content": document_content})
@@ -55,9 +58,8 @@ user_input = st.text_input("Digite sua pergunta relacionada ao documento:", key=
 
 # Botão de envio
 if st.button("Enviar"):
-    if user_input:
-        response = send_message(user_input, document_content)
-        st.session_state['messages'].append(f"Você: {user_input}")
-        st.session_state['messages'].append(f"Assistente: {response}")
-        # Limpa o campo de entrada
-        st.session_state['user_input'] = ""
+    response = send_message(user_input, document_content)
+    st.session_state['messages'].append(f"Você: {user_input}")
+    st.session_state['messages'].append(f"Assistente: {response}")
+    # Limpa o campo de entrada
+    st.session_state['user_input'] = ""
