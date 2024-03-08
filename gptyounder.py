@@ -4,9 +4,13 @@ import docx
 import fitz  # PyMuPDF
 from openai import OpenAI
 
-# Função para processar o arquivo carregado e extrair o texto
+# Inicialização da sessão
+if "messages" not in st.session_state:
+    st.session_state["messages"] = []
+
+# Função para processar o arquivo carregado
 def process_file(uploaded_file, file_type):
-    """Extrai texto de arquivos PDF, Excel, Word."""
+    """Processa o arquivo carregado e retorna seu texto."""
     text = ""
     if file_type == "PDF":
         with fitz.open(stream=uploaded_file.read()) as doc:
@@ -19,45 +23,40 @@ def process_file(uploaded_file, file_type):
         text = '\n'.join(para.text for para in doc.paragraphs)
     return text
 
-# Função para processamento e solicitação de resumo do arquivo
-def process_and_summarize_file(uploaded_file, file_type):
-    """Processa e solicita um resumo para o arquivo carregado."""
-    document_content = process_file(uploaded_file, file_type)
-    if not openai_api_key:
-        st.info("Por favor, adicione sua chave da API da OpenAI para continuar.")
-        return
-    client = OpenAI(api_key=openai_api_key)
-    response = client.chat.completions.create(model="gpt-3.5-turbo", messages=[{"role": "system", "content": f"Resuma o seguinte texto: {document_content}"}])
-    msg = response.choices[0].message.content
-    st.session_state["messages"].append({"role": "assistant", "content": msg})
-    st.chat_message("assistant").write(msg)
+st.title("💬Chatbot da Younder")
 
-# Solicita a chave da API da OpenAI através da interface do Streamlit
 with st.sidebar:
     openai_api_key = st.text_input("Chave da API da OpenAI", key="chatbot_api_key", type="password")
     st.markdown("[Obtenha uma chave da API da OpenAI](https://platform.openai.com/account/api-keys)")
+    st.markdown("[Veja o código fonte](https://github.com/streamlit/llm-examples/blob/main/Chatbot.py)")
 
-    # UI para upload de documentos
-    st.header("Upload de Documentos")
-    file_types = ["PDF", "Excel", "Word"]
-    file_type = st.selectbox("Tipo de Documento", ["Escolher"] + file_types)
-    uploaded_file = st.file_uploader("Carregue um arquivo", type=["pdf", "xlsx", "docx"])
-    if uploaded_file and file_type != "Escolher":
-        process_and_summarize_file(uploaded_file, file_type)
+# UI para upload de documentos
+file_types = ["PDF", "Excel", "Word"]
+file_type = st.selectbox("Tipo de Documento", ["Escolher"] + file_types)
+uploaded_file = st.file_uploader("Carregue um arquivo", type=["pdf", "xlsx", "docx"])
+if uploaded_file and file_type != "Escolher":
+    document_text = process_file(uploaded_file, file_type)
+    st.write("Documento carregado com sucesso!")
 
-# Adicionando o logo e título
-st.image("https://younder.com.br/wp-content/uploads/2023/03/Logotipo-Younder-horizontal-principal-1-1024x447.png", width=300)
-st.title("💬 Chatbot da Younder")
-
-# Inicialização do estado da sessão para mensagens
-if "messages" not in st.session_state:
-    st.session_state["messages"] = [{"role": "assistant", "content": "Como posso ajudá-lo?"}]
-
-# Exibição das mensagens anteriores
-for msg in st.session_state.messages:
-    st.chat_message(msg["role"]).write(msg["content"])
-
+    if openai_api_key:
+        client = OpenAI(api_key=openai_api_key)
+        response = client.chat.completions.create(model="gpt-3.5-turbo", messages=[{"role": "user", "content": document_text}])
+        msg = response.choices.append({"role": "assistant", "content": msg})
+        st.write("Resumo do documento:")
+        st.write(msg)
+    else:
+        st.warning("Por favor, adicione sua chave da API da OpenAI para ver o resumo do documento.")
 
 # Entrada de texto do usuário
-if prompt := st.chat_input("Digite sua pergunta"):
-    handle_user_input(prompt)
+prompt = st.text_input("Digite sua pergunta:")
+if prompt:
+    if openai_api_key:
+        response = client.chat.completions.create(model="gpt-3.5-turbo", messages=[{"role": "user", "content": prompt}])
+        msg = response.choices[0].message.content
+        st.session_state["messages"].append({"role": "user", "content": prompt})
+        st.session_state["messages"].append({"role": "assistant", "content": msg})
+        st.write("Você perguntou: ", prompt)
+        st.write("Resposta do chatbot:")
+        st.write(msg)
+    else:
+        st.warning("Por favor, adicione sua chave da API da OpenAI para continuar o chat.")
