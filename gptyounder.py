@@ -56,7 +56,7 @@ with st.sidebar:
             st.text_area("Prévia do documento:", value=document_content[:500] + "...", height=150, disabled=True)
 
 # Interface do usuário para o chat
-st.title("Chat com ChatGPT")
+st.title("yOUNDER GPT")
 user_input = st.text_input("Digite sua mensagem:", key="user_input")
 
 if st.button("Enviar") and user_input:
