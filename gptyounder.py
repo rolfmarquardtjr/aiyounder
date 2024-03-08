@@ -3,7 +3,6 @@ import openai
 import pandas as pd
 import docx
 import fitz  # PyMuPDF
-import os
 
 # Configura a chave da API usando Secrets
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
@@ -48,12 +47,16 @@ if file_type != "Nenhum":
         st.sidebar.text_area("Prévia do documento", value=document_content[:500] + "...", height=150)
 
 st.title("Chat com ChatGPT")
-user_input = st.text_input("Digite sua pergunta relacionada ao documento:", key="input", on_change=send_message, args=(document_content,))
+user_input = st.text_input("Digite sua pergunta relacionada ao documento:", key="input")
 
-# Botão de envio foi removido para simplificar o exemplo e evitar o erro
-
-if 'messages' not in st.session_state:
-    st.session_state['messages'] = []
+# Botão de envio
+if st.button("Enviar"):
+    if user_input:
+        response = send_message(user_input, document_content)
+        st.session_state['messages'].append(f"Você: {user_input}")
+        st.session_state['messages'].append(f"Assistente: {response}")
+        # Limpa o campo de entrada
+        st.session_state['input'] = ""
 
 # Exibindo mensagens
 for message in st.session_state['messages']:
