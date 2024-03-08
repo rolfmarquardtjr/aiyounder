@@ -22,6 +22,18 @@ def process_file(uploaded_file, file_type):
         text = '\n'.join(para.text for para in doc.paragraphs)
     return text
 
+def summarize_document(document_content):
+    """Sumariza o documento utilizando a API da OpenAI."""
+    try:
+        response = openai.Completion.create(
+            engine="davinci",
+            prompt=document_content,
+            max_tokens=150
+        )
+        return response.choices[0].text.strip()
+    except Exception as e:
+        return f"Erro ao sumarizar o documento: {str(e)}"
+
 def send_message(user_input, document_content):
     """Envia a mensagem do usuário e o conteúdo do documento para a OpenAI e retorna a resposta."""
     try:
@@ -53,7 +65,7 @@ if submit_button and user_input:
         st.session_state['messages'].append(f"Você: {user_input}")
         st.session_state['messages'].append(f"Assistente: {assistant_response}")
     # Limpa o campo de entrada
-    user_input = ""
+    st.session_state['user_input'] = ""
 
 for message in st.session_state.get('messages', []):
     st.text(message)
@@ -70,5 +82,12 @@ with st.sidebar:
             if document_content:
                 st.session_state['document_content'] = document_content
                 st.success("Documento carregado com sucesso!")
+                # Sumariza o conteúdo do documento
+                summary = summarize_document(document_content)
+                if summary:
+                    st.sidebar.subheader("Resumo do Documento")
+                    st.sidebar.text(summary)
+                else:
+                    st.error("Erro ao sumarizar o conteúdo do documento.")
             else:
                 st.error("Erro ao processar o documento. Tente novamente.")
