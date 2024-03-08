@@ -61,13 +61,15 @@ with st.sidebar:
 
 st.title("Chat com ChatGPT")
 
-user_input = st.text_input("Digite sua pergunta relacionada ao documento:", value="", key="user_input")
+user_input = st.text_input("Digite sua pergunta relacionada ao documento:", value=st.session_state.get('user_input', ''), key="user_input_field")
 
+if st.button("Enviar"):
+    if user_input:
+        assistant_response = send_message(user_input, st.session_state['document_content'])
 if st.button("Enviar") and user_input:
     assistant_response = send_message(user_input, st.session_state['document_content'])
     st.session_state.messages.append(f"Você: {user_input}")
     st.session_state.messages.append(f"Assistente: {assistant_response}")
-    st.session_state['user_input'] = ""  # Limpar o campo de texto após o envio
 
 for message in st.session_state.messages:
     st.text(message)
