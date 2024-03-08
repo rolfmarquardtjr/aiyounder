@@ -3,15 +3,11 @@ import openai
 import pandas as pd
 import docx
 import fitz  # PyMuPDF
+import os
 
-# Defina sua chave de API da OpenAI
+# Configura a chave da API usando Secrets
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 openai.api_key = OPENAI_API_KEY
-
-# Inicializa as variáveis de estado
-st.session_state.setdefault('messages', [])
-st.session_state.setdefault('user_input', '')
-st.session_state.setdefault('document_content', '')
 
 def process_file(uploaded_file, file_type):
     """Processa o arquivo carregado e retorna seu texto."""
@@ -27,42 +23,45 @@ def process_file(uploaded_file, file_type):
         text = '\n'.join(para.text for para in doc.paragraphs)
     return text
 
-def send_message(user_input, document_content=""):
+def send_message(user_input, document_content):
     """Envia a mensagem do usuário para a OpenAI e retorna a resposta."""
-    if not user_input:
-        return ""
-
-    messages = [{"role": "system", "content": "You are a helpful assistant."}]
-    if document_content:  # Inclui o conteúdo do documento como contexto se disponível
-        messages.append({"role": "system", "content": document_content})
-    messages.append({"role": "user", "content": user_input})
-
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
-        messages=messages,
-        temperature=0.7,  # Configura a temperatura para controlar a criatividade da resposta
-        max_tokens=50  # Limita o número de tokens na resposta para evitar respostas muito longas
+        messages=[
+            {"role": "system", "content": document_content},
+            {"role": "user", "content": user_input}
+        ]
     )
     return response.choices[0].message['content']
 
-# Adicionando o logo e configurando a interface do usuário
+# Adicionando o logo
 st.sidebar.image("https://younder.com.br/wp-content/uploads/2023/03/Logotipo-Younder-horizontal-principal-1-1024x447.png", width=300)
-st.sidebar.header("Upload de Documentos (Opcional)")
-file_type = st.sidebar.selectbox("Tipo de Documento", ["Nenhum", "PDF", "Excel", "Word"])
+
+# Upload de documentos
+st.sidebar.header("Upload de Documentos")
+file_type = st.sidebar.selectbox("Tipo de Documento", ["Escolher", "PDF", "Excel", "Word"])
 document_content = ""
-if file_type != "Nenhum":
+if file_type != "Escolher":
     uploaded_file = st.sidebar.file_uploader("Carregue um arquivo", type=["pdf", "xlsx", "docx"])
     if uploaded_file:
         document_content = process_file(uploaded_file, file_type)
-        st.sidebar.text_area("Prévia do documento", value=document_content[:500] + "...", height=150)
+        st.sidebar.text_area("Prévia do documento:", value=document_content[:500] + "...", height=150)
 
+# Chat com ChatGPT
 st.title("Chat com ChatGPT")
-user_input = st.text_input("Digite sua pergunta relacionada ao documento (opcional):", key="input", value=st.session_state['user_input'])
+user_input = st.text_input("Digite sua pergunta relacionada ao documento:", key="user_input")
 
-# Botão de envio
-if st.button("Enviar"):
-    response = send_message(user_input, document_content)
+if st.button("Enviar") and user_input:
+    if 'messages' not in st.session_state:
+        st.session_state['messages'] = []
+    assistant_response = send_message(user_input, document_content)
     st.session_state['messages'].append(f"Você: {user_input}")
-    st.session_state['messages'].append(f"Assistente: {response}")
-    # Limpa o campo de entrada
-    st.session_state['user_input'] = ""
+    st.session_state['messages'].append(f"Assistente: {assistant_response}")
+    st.session_state['user_input'] = ''  # Tentativa de resetar o input
+
+for message in st.session_state.get('messages', []):
+    st.text(message)
+
+# Limpeza após a renderização
+if 'user_input' in st.session_state:
+    del st.session_state['user_input']  # Limpeza do estado após o uso
