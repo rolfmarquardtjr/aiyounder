@@ -4,14 +4,12 @@ import pandas as pd
 import docx
 import fitz  # PyMuPDF
 
-# Defina sua chave de API da OpenAI
+# Configura a chave da API usando Secrets
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 openai.api_key = OPENAI_API_KEY
 
 # Inicializa as variáveis de estado
 st.session_state.setdefault('messages', [])
-st.session_state.setdefault('user_input', '')
-st.session_state.setdefault('document_content', '')
 
 def process_file(uploaded_file, file_type):
     """Processa o arquivo carregado e retorna seu texto."""
@@ -29,9 +27,6 @@ def process_file(uploaded_file, file_type):
 
 def send_message(user_input, document_content=""):
     """Envia a mensagem do usuário para a OpenAI e retorna a resposta."""
-    if not user_input:
-        return ""
-
     messages = [{"role": "system", "content": "You are a helpful assistant."}]
     if document_content:  # Inclui o conteúdo do documento como contexto se disponível
         messages.append({"role": "system", "content": document_content})
@@ -55,12 +50,17 @@ if file_type != "Nenhum":
         st.sidebar.text_area("Prévia do documento", value=document_content[:500] + "...", height=150)
 
 st.title("Chat com ChatGPT")
-user_input = st.text_input("Digite sua pergunta relacionada ao documento (opcional):", key="input", value=st.session_state['user_input'])
+user_input = st.text_input("Digite sua pergunta relacionada ao documento:", key="input")
 
 # Botão de envio
 if st.button("Enviar"):
-    response = send_message(user_input, document_content)
-    st.session_state['messages'].append(f"Você: {user_input}")
-    st.session_state['messages'].append(f"Assistente: {response}")
-    # Limpa o campo de entrada
-    st.session_state['user_input'] = ""
+    if user_input:
+        response = send_message(user_input, document_content)
+        st.session_state['messages'].append(f"Você: {user_input}")
+        st.session_state['messages'].append(f"Assistente: {response}")
+        # Limpa o campo de entrada
+        user_input = ""
+
+# Exibindo mensagens
+for message in st.session_state['messages']:
+    st.text(message)
