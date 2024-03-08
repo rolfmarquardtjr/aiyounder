@@ -1,13 +1,28 @@
 import streamlit as st
-import openai
 import pandas as pd
 import docx
 import fitz  # PyMuPDF
+from openai import OpenAI
 
-# Acessar a chave da API da OpenAI de Secrets no Streamlit Cloud
-OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
-openai.api_key = OPENAI_API_KEY
+# Solicita a chave da API da OpenAI através da interface do Streamlit
+with st.sidebar:
+    openai_api_key = st.text_input("Chave da API da OpenAI", key="chatbot_api_key", type="password")
+    st.markdown("[Obtenha uma chave da API da OpenAI](https://platform.openai.com/account/api-keys)")
+    st.markdown("[Veja o código fonte](https://github.com/streamlit/llm-examples/blob/main/Chatbot.py)")
+    st.markdown("[![Abra no GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/streamlit/llm-examples?quickstart=1)")
 
+    # UI para upload de documentos
+    st.header("Upload de Documentos")
+    file_types = ["PDF", "Excel", "Word"]
+    file_type = st.selectbox("Tipo de Documento", ["Escolher"] + file_types)
+    uploaded_file = st.file_uploader("Carregue um arquivo", type=["pdf", "xlsx", "docx"])
+    if uploaded_file and file_type != "Escolher":
+        document_content = process_file(uploaded_file, file_type)
+        st.session_state['document_content'] = document_content
+
+st.title("💬 Chatbot")
+
+# Função para processar o arquivo carregado
 def process_file(uploaded_file, file_type):
     """Processa o arquivo carregado e retorna seu texto."""
     text = ""
@@ -22,49 +37,35 @@ def process_file(uploaded_file, file_type):
         text = '\n'.join(para.text for para in doc.paragraphs)
     return text
 
-st.title("💬 Chat com ChatGPT")
-
-# UI para upload de documentos
-with st.sidebar:
-    st.header("Upload de Documentos")
-    file_types = ["PDF", "Excel", "Word"]
-    file_type = st.selectbox("Tipo de Documento", ["Escolher"] + file_types)
-    uploaded_file = st.file_uploader("Carregue um arquivo", type=["pdf", "xlsx", "docx"])
-    if uploaded_file and file_type != "Escolher":
-        document_content = process_file(uploaded_file, file_type)
-        st.session_state['document_content'] = document_content
-
 # Inicialização do estado da sessão para mensagens
 if "messages" not in st.session_state:
-    st.session_state["messages"] = [{"role": "system", "content": "Como posso ajudá-lo?"}]
+    st.session_state["messages"] = [{"role": "assistant", "content": "Como posso ajudá-lo?"}]
 
 # Exibição das mensagens anteriores
 for msg in st.session_state.messages:
     st.chat_message(msg["role"]).write(msg["content"])
 
 # Entrada de texto do usuário
-user_input = st.chat_input("Digite sua pergunta ou peça para resumir o documento carregado:")
+if prompt := st.chat_input("Digite sua pergunta ou peça para resumir o documento carregado:"):
+    if not openai_api_key:
+        st.info("Por favor, adicione sua chave da API da OpenAI para continuar.")
+        st.stop()
 
-if user_input:
-    # Adiciona a pergunta do usuário ao estado da sessão
-    st.session_state.messages.append({"role": "user", "content": user_input})
-    
     # Se o usuário pedir para resumir o documento, use o conteúdo do documento como entrada
-    if "resumir" in user_input.lower() and 'document_content' in st.session_state:
-        user_input = st.session_state['document_content']
-    
-    # Prepara as mensagens para a API
-    messages = [{"role": msg["role"], "content": msg["content"]} for msg in st.session_state.messages]
+    if "resumir" in prompt.lower() and 'document_content' in st.session_state:
+        prompt = st.session_state['document_content']
+
+    # Adiciona a pergunta do usuário ao estado da sessão
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    st.chat_message("user").write(prompt)
+
+    # Criação do cliente da OpenAI com a chave fornecida
+    client = OpenAI(api_key=openai_api_key)
     
     # Chama a API da OpenAI para obter a resposta
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=messages
-    )
-    
-    # Obtém a resposta da API
-    assistant_response = response.choices[0].message['content']
+    response = client.chat.completions.create(model="gpt-3.5-turbo", messages=st.session_state.messages)
+    msg = response.choices[0].message.content
     
     # Adiciona a resposta do assistente ao estado da sessão
-    st.session_state.messages.append({"role": "assistant", "content": assistant_response})
-    st.chat_message("assistant").write(assistant_response)
+    st.session_state.messages.append({"role": "assistant", "content": msg})
+    st.chat_message("assistant").write(msg)
