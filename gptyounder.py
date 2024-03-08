@@ -2,7 +2,7 @@ import streamlit as st
 import openai
 import pandas as pd
 import docx
-import fitz  # PyMuPDF, também conhecido como fitz
+import fitz  # PyMuPDF, conhecida também como fitz
 
 # Acessar a chave da API da OpenAI de Secrets no Streamlit Cloud
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
@@ -21,18 +21,6 @@ def process_file(uploaded_file, file_type):
         doc = docx.Document(uploaded_file)
         text = '\n'.join(para.text for para in doc.paragraphs)
     return text
-
-def summarize_document(document_content):
-    """Sumariza o documento utilizando a API da OpenAI."""
-    try:
-        response = openai.Completion.create(
-            engine="davinci",
-            prompt=document_content,
-            max_tokens=150
-        )
-        return response.choices[0].text.strip()
-    except Exception as e:
-        return f"Erro ao sumarizar o documento: {str(e)}"
 
 def send_message(user_input, document_content):
     """Envia a mensagem do usuário e o conteúdo do documento para a OpenAI e retorna a resposta."""
@@ -56,7 +44,7 @@ st.title("Chat com ChatGPT")
 
 # Utilizando st.form para permitir o envio com Enter
 with st.form("chat_form"):
-    user_input = st.text_input("Digite sua pergunta relacionada ao documento:", "")
+    user_input = st.text_input("Digite sua pergunta:", "")
     submit_button = st.form_submit_button("Enviar")
 
 if submit_button and user_input:
@@ -82,12 +70,5 @@ with st.sidebar:
             if document_content:
                 st.session_state['document_content'] = document_content
                 st.success("Documento carregado com sucesso!")
-                # Sumariza o conteúdo do documento
-                summary = summarize_document(document_content)
-                if summary:
-                    st.sidebar.subheader("Resumo do Documento")
-                    st.sidebar.text(summary)
-                else:
-                    st.error("Erro ao sumarizar o conteúdo do documento.")
             else:
                 st.error("Erro ao processar o documento. Tente novamente.")
