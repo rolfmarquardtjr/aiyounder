@@ -5,7 +5,7 @@ import docx
 import fitz  # PyMuPDF
 
 # Defina sua chave de API da OpenAI
-openai.api_key = "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"
+openai.api_key = "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"
 
 # Função para processar arquivos carregados e retornar texto
 def process_file(uploaded_file, file_type):
