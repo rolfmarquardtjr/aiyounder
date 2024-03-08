@@ -6,6 +6,7 @@ import fitz  # PyMuPDF
 
 # Função para processar arquivos carregados e retornar texto
 def process_file(uploaded_file, file_type):
+    text = ""
     if file_type == "PDF":
         with fitz.open(stream=uploaded_file.read(), filetype="pdf") as doc:
             text = " ".join(page.get_text() for page in doc)
@@ -18,61 +19,48 @@ def process_file(uploaded_file, file_type):
     return text
 
 # Função para enviar mensagens e receber respostas
-def send_message():
-    message_text = st.session_state.user_input
-    if message_text:
-        st.session_state.messages.append(f"Você: {message_text}")
-        openai_api_key = st.session_state.openai_api_key
-        if openai_api_key:
-            try:
-                openai.api_key = openai_api_key
-                response = openai.ChatCompletion.create(
-                    model="gpt-3.5-turbo",
-                    messages=[{"role": "system", "content": st.session_state.document_content},
-                              {"role": "user", "content": message_text}]
-                )
-                st.session_state.messages.append(f"Assistente: {response.choices[0].message['content']}")
-            except Exception as e:
-                st.session_state.messages.append(f"Assistente: Erro ao consultar a OpenAI: {e}")
-        else:
-            st.session_state.messages.append("Assistente: Por favor, insira a chave da API da OpenAI.")
-        st.session_state.user_input = ''
+def send_message(user_input, document_content, openai_api_key):
+    if user_input:
+        try:
+            openai.api_key = openai_api_key
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "system", "content": document_content},
+                          {"role": "user", "content": user_input}]
+            )
+            return response.choices[0].message['content']
+        except Exception as e:
+            return f"Erro ao consultar a OpenAI: {str(e)}"
 
-# Sidebar para inserção da chave da API da OpenAI e upload de documentos
+# Sidebar para configuração da chave da API e upload de documentos
 with st.sidebar:
-    st.session_state.openai_api_key = st.text_input("OpenAI API Key", type="password")
-    st.header("Upload de Documentos")
-    file_type = st.selectbox("Tipo de Documento", options=["", "PDF", "Excel", "Word"])
-    if file_type:
-        uploaded_file = st.file_uploader("Carregue um arquivo", type=["pdf", "xlsx", "docx"])
-        if uploaded_file:
-            st.session_state.document_content = process_file(uploaded_file, file_type)
-            st.text_area("Prévia do documento:", value=st.session_state.document_content, height=150)
+    st.header("Configurações")
+    openai_api_key = st.text_input("OpenAI API Key", "", type="password")
+    file_types = ["Escolher", "PDF", "Excel", "Word"]
+    file_type = st.selectbox("Tipo de Documento", options=file_types)
+    uploaded_file = st.file_uploader("Carregue um arquivo", type=["pdf", "xlsx", "docx"])
+    document_content = ""
+    if uploaded_file and file_type != "Escolher":
+        document_content = process_file(uploaded_file, file_type)
+        st.text_area("Prévia do documento:", value=document_content[:500] + "...", height=150)
 
-# Inicializa as variáveis de estado da sessão
+# Inicialização das variáveis de estado da sessão
 if 'messages' not in st.session_state:
     st.session_state.messages = []
-if 'user_input' not in st.session_state:
-    st.session_state.user_input = ''
-if 'document_content' not in st.session_state:
-    st.session_state.document_content = ''
-if 'file_type' not in st.session_state:
-    st.session_state.file_type = ''
 
-# Área principal do chat
-st.title("Chat")
+# Área de chat principal
+st.title("Chat com ChatGPT")
+user_input = st.text_input("Digite sua mensagem:", "")
+
+# Enviar mensagem e mostrar resposta
+if st.button("Enviar") and user_input:
+    if openai_api_key:  # Verifica se a chave da API foi fornecida
+        assistant_response = send_message(user_input, document_content, openai_api_key)
+        st.session_state.messages.append(f"Você: {user_input}")
+        st.session_state.messages.append(f"Assistente: {assistant_response}")
+    else:
+        st.warning("Por favor, insira a chave da API da OpenAI.")
+
+# Exibição do histórico de mensagens
 for message in st.session_state.messages:
     st.text(message)
-
-# Campo de entrada para o chat
-st.text_input("Digite sua mensagem e pressione Enter:",
-              key="user_input",
-              on_change=send_message)
-
-# Script para rolagem automática (atualizado para funcionar corretamente)
-st.markdown("""
-    <script>
-        const messageBox = document.querySelector('.stTextInput');
-        messageBox.scrollIntoView({behavior: 'smooth', block: 'end'});
-    </script>
-""", unsafe_allow_html=True)
