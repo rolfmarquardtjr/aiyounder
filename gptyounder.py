@@ -9,10 +9,8 @@ OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 openai.api_key = OPENAI_API_KEY
 
 # Inicializa as variáveis de estado
-if 'messages' not in st.session_state:
-    st.session_state['messages'] = []
-if 'input' not in st.session_state:
-    st.session_state['input'] = ""
+st.session_state.setdefault('messages', [])
+st.session_state.setdefault('input', "")
 
 def process_file(uploaded_file, file_type):
     """Processa o arquivo carregado e retorna seu texto."""
