@@ -10,7 +10,6 @@ openai.api_key = OPENAI_API_KEY
 
 # Inicializa as variáveis de estado
 st.session_state.setdefault('messages', [])
-st.session_state.setdefault('input', "")
 
 def process_file(uploaded_file, file_type):
     """Processa o arquivo carregado e retorna seu texto."""
@@ -60,7 +59,7 @@ if st.button("Enviar"):
         st.session_state['messages'].append(f"Você: {user_input}")
         st.session_state['messages'].append(f"Assistente: {response}")
         # Limpa o campo de entrada
-        st.session_state['input'] = ""
+        user_input = ""
 
 # Exibindo mensagens
 for message in st.session_state['messages']:
